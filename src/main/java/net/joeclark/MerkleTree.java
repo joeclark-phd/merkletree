@@ -60,11 +60,9 @@ public class MerkleTree {
             if(new BigInteger(newHash).compareTo(new BigInteger(hash))<0) {
                 left = new MerkleTree(newHash);
                 right = new MerkleTree(hash);
-                hash = hashTogether(newHash,hash);
             } else {
                 left = new MerkleTree(hash);
                 right = new MerkleTree(newHash);
-                hash = hashTogether(hash, newHash);
             }
         } else {
             // we're not a leaf node. pass the hash down the tree
@@ -74,6 +72,7 @@ public class MerkleTree {
                 right.insertHash(newHash);
             }
         }
+        this.hash = hashTogether(left.getHash(), right.getHash());
     }
 
     private boolean isLeaf() {
@@ -88,6 +87,9 @@ public class MerkleTree {
         }
     }
 
+    /**
+     * Combines the two hashes (from 'left' and 'right' nodes) and hashes the combination.
+     */
     private byte[] hashTogether(byte[] leftHash, byte[] rightHash) throws IOException {
         ByteArrayOutputStream baoStream = new ByteArrayOutputStream();
         baoStream.write(leftHash);
@@ -108,7 +110,10 @@ public class MerkleTree {
         return this.containsHash(queryHash);
     }
 
-    private boolean containsHash(byte[] queryHash) {
+    /**
+     * Checks if a given hash is stored in the tree.
+     */
+    public boolean containsHash(byte[] queryHash) {
         if(isLeaf()) {
             return Arrays.equals(queryHash, this.hash);
         } else {
@@ -147,6 +152,35 @@ public class MerkleTree {
             }
         }
         return proofTree;
+    }
+
+    /**
+     * To verify the root hash (Merkle root), we rebuild it from the leaf nodes, combining hashes as we go.
+     */
+    public boolean verifyRootHash(byte[] knownRootHash) throws IOException {
+        return Arrays.equals(knownRootHash, recalculateRootHash());
+    }
+
+    /**
+     * Recalculate the root hash from the leaves all the way up.
+     */
+    public byte[] recalculateRootHash() throws IOException {
+        if(isLeaf()) {
+            return this.hash;
+        } else {
+            return hashTogether(left.recalculateRootHash(), right.recalculateRootHash());
+        }
+    }
+
+    /** 
+     * Traverses the whole tree in order to count how many nodes (hashes) it contains. For testing/analysis.
+     */
+    public int getSize() {
+        if(isLeaf()) { 
+            return 1;
+        } else {
+            return left.getSize() + right.getSize();
+        }
     }
 
 }
