@@ -30,4 +30,15 @@ public class MerkleTreeTest
     }
 
 
+    @Test
+    public void testProofTreeWorks() throws Exception {
+        MerkleTree tree = generateTestTree();
+        assertTrue(tree.contains("gamma"));
+        // we can generate a "proof tree" which is much smaller than the real tree 
+        // but has enough of the tree to confirm the existence of our data
+        MerkleTree proof = tree.getProofTreeFor("gamma");
+        assertTrue(proof.contains("gamma"));
+
+    }
+
 }

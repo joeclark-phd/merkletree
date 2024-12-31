@@ -29,28 +29,16 @@ public class MerkleTree {
         this.hash = hash;
     }
 
-    /**
-     * Checks if the data's hash is stored in the tree.
-     * 
-     * Don't misunderstand: the data itself is not stored in the Merkle tree, only its hash,
-     * as we assume it is practically infeasible to come up with altered 'data' that gives
-     * the same hash.
-     */
-    public boolean contains(String data) throws Exception {
-        byte[] newHash = HashHelper.hash256(data);
-        return this.containsHash(newHash);
+    public void setLeft(MerkleTree left) {
+        this.left = left;
     }
 
-    private boolean containsHash(byte[] newHash) {
-        if(isLeaf()) {
-            return Arrays.equals(newHash, this.hash);
-        } else {
-            return left.containsHash(newHash) || right.containsHash(newHash);
-        }
+    public void setRight(MerkleTree right) {
+        this.right = right;
     }
 
-    private boolean isLeaf() {
-        return left==null && right==null;
+    public byte[] getHash() {
+        return hash;
     }
 
     /**
@@ -88,6 +76,10 @@ public class MerkleTree {
         }
     }
 
+    private boolean isLeaf() {
+        return left==null && right==null;
+    }
+
     private byte[] minHash() {
         if(isLeaf()) {
             return this.hash;
@@ -102,6 +94,59 @@ public class MerkleTree {
         baoStream.write(rightHash);
         byte[] combinedHashes = baoStream.toByteArray();
         return HashHelper.hash256(combinedHashes);
+    }
+
+    /**
+     * Checks if the data's hash is stored in the tree.
+     * 
+     * Don't misunderstand: the data itself is not stored in the Merkle tree, only its hash,
+     * as we assume it is practically infeasible to come up with altered 'data' that gives
+     * the same hash.
+     */
+    public boolean contains(String data) throws Exception {
+        byte[] queryHash = HashHelper.hash256(data);
+        return this.containsHash(queryHash);
+    }
+
+    private boolean containsHash(byte[] queryHash) {
+        if(isLeaf()) {
+            return Arrays.equals(queryHash, this.hash);
+        } else {
+            return left.containsHash(queryHash) || right.containsHash(queryHash);
+        }
+    }
+
+    /**
+     * Returns a partial tree with just enough nodes and hashes to allow another party to
+     * run the `contains` method and verify that the data's hash is stored in the tree.
+     */
+    public MerkleTree getProofTreeFor(String data) throws Exception {
+        byte[] queryHash = HashHelper.hash256(data);
+        if(!containsHash(queryHash)) {
+            // This check requires searching the tree twice, but is much easier to read than if we tried
+            // to build the proof at the same time as confirming the presence of the data.
+            throw new Exception("Merkle Tree does not contain that data, so no proof is possible.");
+        }
+        return getProofTreeForHash(queryHash);
+    }
+
+    /**
+     * We know the tree contains the hash, since this is called by `getProofTreeFor` *after* it
+     * checks whether the tree `contains` the hash.  For each branch node, we need the sub-tree leading
+     * to the query hash, and only the root hash of the other sub-tree.
+     */
+    private MerkleTree getProofTreeForHash(byte[] queryHash) {
+        MerkleTree proofTree = new MerkleTree(this.hash);
+        if (!isLeaf()) {
+            if (left.containsHash(queryHash)) {
+                proofTree.setRight(new MerkleTree(right.getHash()));
+                proofTree.setLeft(left.getProofTreeForHash(queryHash));
+            } else {
+                proofTree.setLeft(new MerkleTree(left.getHash()));
+                proofTree.setRight(right.getProofTreeForHash(queryHash));
+            }
+        }
+        return proofTree;
     }
 
 }
