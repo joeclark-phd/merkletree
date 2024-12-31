@@ -1,6 +1,8 @@
 # merkletree
 
-A simple implementation of a Merkle Tree for verifying a large set of data has not been tampered with.
+A simple implementation of a Merkle Tree for verifying a large set of data has not been tampered with.  In this example, the data are Strings (although it would be easy to extend it to accept any Serializable type) and the tree structure is an unbalanced binary search tree.  Obviously, optimizations are possible, but I tried to keep this simple as the goal is to improve my own understanding.
+
+The implementation is in `src/main/java/net/joeclark/MerkleTree.java` and the tests (which explain the usage) are in `src/test/java/net/joeclark/MerkleTreeTest.java`.  Reading those files is the best way to understand this project.
 
 To run tests, download this repo and use Maven:
 
